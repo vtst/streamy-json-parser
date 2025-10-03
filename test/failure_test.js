@@ -25,7 +25,8 @@ const FAILING_EXAMPLE_1 = `{
 {
   assert.throws(
     () => parse(FAILING_EXAMPLE_1),
-    checkSyntaxError('Line 4, Column 1: Unexpected token: "}"')
+    checkSyntaxError('Line 4, Column 1: Unexpected token: "}"'),
+    "FAILING_EXAMPLE_1"
   );
 }
 
@@ -37,7 +38,8 @@ const FAILING_EXAMPLE_2 = `{
 {
   assert.throws(
     () => parse(FAILING_EXAMPLE_2),
-    checkSyntaxError('Line 2, Column 3: Unknown literal value: key_without_quotes')
+    checkSyntaxError('Line 2, Column 3: Unknown literal value: key_without_quotes'),
+    "FAILING_EXAMPLE_2"
   );
 }
 
@@ -49,7 +51,8 @@ const FAILING_EXAMPLE_3 = `{
 {
   assert.throws(
     () => parse(FAILING_EXAMPLE_3),
-    checkSyntaxError("Line 3, Column 13: Unknown literal value: 'SINGLE_QUOTES'")
+    checkSyntaxError("Line 3, Column 13: Unknown literal value: 'SINGLE_QUOTES'"),
+    "FAILING_EXAMPLE_3"
   );
 }
 
@@ -60,7 +63,8 @@ const FAILING_EXAMPLE_4 = `[
 {
   assert.throws(
     () => parse(FAILING_EXAMPLE_4),
-    checkSyntaxError('Line 2, Column 19: Unexpected token: """')
+    checkSyntaxError('Line 2, Column 19: Unexpected token: """'),
+    "FAILING_EXAMPLE_4"
   );
 }
 
@@ -71,6 +75,7 @@ const FAILING_EXAMPLE_5 = `{
 {
   assert.throws(
     () => parse(FAILING_EXAMPLE_5),
-    checkSyntaxError('Line 2, Column 22: Unknown literal value: tru')
+    checkSyntaxError('Line 2, Column 22: Unknown literal value: tru'),
+    "FAILING_EXAMPLE_5"
   );
 }
