@@ -11,6 +11,21 @@ Typical use cases include:
 
 ## Usage
 
+### Installation
+
+To install the package, run
+```bash
+npm install streamy-json-parser
+```
+
+To use the package in a module, use one of the following statements depending on the module system you are using:
+```javascript
+import streamy_json_parser from 'streamy-json-parser';
+import {Parser, parse, SyntaxError} from 'streamy-json-parser';
+const streamy_json_parser = require('streamy-json-parser');
+const {Parser, parse, SyntaxError} = require('streamy-json-parser');
+```
+
 ### The `Parser` class
 
 The `Parser` class is the primary way to interact with this library. Here’s a simple
@@ -89,6 +104,12 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
 
 ## TODOs
 
-* Add an easy way to report syntax errors in a user friendly manner.
-* Option to delete values during parsing to free memory for large inputs.
-* Add object to events
+* New features
+  * Function to report error locations in a human readable manner
+  * Delete values during parsing to free memory for large input
+  * Add objects to events
+* Testing
+  * Create unit test for events
+* Optimization
+  * Better handling of location
+  * Tokens as single integers
