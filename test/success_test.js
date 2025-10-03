@@ -65,7 +65,7 @@ const PLACEHOLDER_1 = [
 ];
 
 {
-  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_1), 13, PLACEHOLDER_1), EXAMPLE_1);
+  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_1), 13, PLACEHOLDER_1), EXAMPLE_1, "EXAMPLE_1");
 }
 
 const EXAMPLE_2 = {
@@ -80,7 +80,7 @@ const EXAMPLE_2 = {
 };
 
 {
-  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_2, null, 2), 21), EXAMPLE_2);
+  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_2, null, 2), 21), EXAMPLE_2, "EXAMPLE_2");
 }
 
 const EXAMPLE_3 = {
@@ -91,7 +91,7 @@ const EXAMPLE_3 = {
 };
 
 {
-  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_3), 5), EXAMPLE_3);
+  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_3), 5), EXAMPLE_3, "EXAMPLE_3");
 }
 
 const EXAMPLE_4 = {
@@ -111,5 +111,38 @@ const EXAMPLE_4 = {
 };
 
 {
-  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_4), 25), EXAMPLE_4);
+  assert.deepStrictEqual(parseInChunks(JSON.stringify(EXAMPLE_4), 25), EXAMPLE_4, "EXAMPLE_4");
+}
+
+const EXAMPLE_5 = {
+  "a": [1, 2, 3],
+  "b": {"c": 4, "d": {"e": 5, "f": 6}},
+  "g": 7
+};
+
+const EXPECTED_EVENTS_5 = [
+  { "type": "begin", "path": [] },
+  { "type": "begin", "path": ["a"] },
+  { "type": "set", "path": ["a", 0] },
+  { "type": "set", "path": ["a", 1] },
+  { "type": "set", "path": ["a", 2] },
+  { "type": "end", "path": ["a"] },
+  { "type": "begin", "path": ["b"] },
+  { "type": "set", "path": ["b", "c"] },
+  { "type": "begin", "path": ["b", "d"] },
+  { "type": "set", "path": ["b", "d", "e"] },
+  { "type": "set", "path": ["b", "d", "f"] },
+  { "type": "end", "path": ["b", "d"] },
+  { "type": "end", "path": ["b"] },
+  { "type": "set", "path": ["g"] },
+  { "type": "end", "path": [] }
+];
+
+
+{
+  let parser = new Parser({track_events: true});
+  parser.push(JSON.stringify(EXAMPLE_5));
+  parser.close();
+  let events = parser.takeEvents();
+  assert.deepStrictEqual(events, EXPECTED_EVENTS_5, "EXAMPLE_5");
 }

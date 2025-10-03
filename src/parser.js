@@ -171,7 +171,7 @@ export class Parser {
     for (; this.#index < this.#lexer.tokens.length; ++this.#index) {
       const token = this.#lexer.tokens[this.#index];
       const context = this.#stack.at(-1);
-      switch (token.type) {
+      switch (typeof token === 'object' ? token.type : token) {
         case TOKEN_TYPE.LITERAL:
           this.#setValue(token.value);
           break;

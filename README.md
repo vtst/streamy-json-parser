@@ -108,8 +108,6 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
   * Function to report error locations in a human readable manner
   * Delete values during parsing to free memory for large input
   * Add objects to events
-* Testing
-  * Create unit test for events
 * Optimization
   * Better handling of location
   * Tokens as single integers
