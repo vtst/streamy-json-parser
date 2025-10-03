@@ -6,7 +6,7 @@
   "module": "dist/index.esm.js",
   "browser": "dist/streamy-json-parser.min.js",
   "scripts": {
-    "test": "node test/*.js",
+    "test": "node test/success_test.js && node test/failure_test.js",
     "build": "rollup -c",
     "prepublishOnly": "npm run build"
   },
