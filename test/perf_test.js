@@ -66,6 +66,24 @@ function time(iterations, fn, ...args) {
   return {result, time: (end - start) / iterations};
 }
 
+function splitStringIntoChunks(str, chunkSize) {
+  let result = [];
+  for (let i = 0; i < str.length; i += chunkSize) {
+    result.push(str.slice(i, i + chunkSize));
+  }
+  return result;
+}
+
+function parseInChunks(str, chunkSize, opt_placeholder) {
+  let parser = new Parser({include_incomplete_strings: '...'});
+  if (opt_placeholder) parser.setPlaceholder(opt_placeholder);
+  for (const chunk of chunkSize ? splitStringIntoChunks(str, chunkSize) : [str]) {
+    parser.push(chunk);
+  }
+  parser.close();
+  return parser.getValue();
+}
+
 {
   console.log('Generating a large JSON object');
   let obj = generateRandomJson('abc', 10);
@@ -73,7 +91,7 @@ function time(iterations, fn, ...args) {
   let str = JSON.stringify(obj);
   console.log(str.length + ' characters');
   let {result: o0, time: t0} = time(1, JSON.parse, str);
-  let {result: o1, time: t1} = time(1, parse, str);
+  let {result: o1, time: t1} = time(1, parseInChunks, str, 0);
   console.log(`JSON.parse: ${t0}ms, parse: ${t1}ms, ratio: ${Math.round(10 * t1/t0) / 10}`);
   assert.deepStrictEqual(o0, o1);
 }
