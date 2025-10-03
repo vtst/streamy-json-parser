@@ -160,8 +160,8 @@ export class Lexer {
   // Push a token for what is stored in the string buffer, and reset it.
   #flushString() {
     if (this.#stringBuffer) {
-      this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer, this.#bufferStartLocation);
-      this.#stringBuffer = '';
+      this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''), this.#bufferStartLocation);
+      this.#stringBuffer = [];
       this.#bufferStartLocation = {... this.location};
     }
   }
@@ -201,7 +201,7 @@ export class Lexer {
         // Strings
         case '"':
           this.#flushState();
-          this.#stringBuffer = '';
+          this.#stringBuffer = [];
           this.#bufferStartLocation = {... this.location};
           this.#flushStateAndPushToken(TOKEN_TYPE.START_STRING);
           break;
@@ -225,7 +225,7 @@ export class Lexer {
       switch (char) {
         case '\\':
           this.#flushState();
-          this.#escapeSequenceBuffer = '';
+          this.#escapeSequenceBuffer = [];
           break;
         case '"':
           this.#flushString();
@@ -236,20 +236,20 @@ export class Lexer {
         case '\r':
         default:
           this.#flushState();
-          this.#stringBuffer += char;
+          this.#stringBuffer.push(char);
           break;
       }
     } else {
       // In a string, in an escape sequence.
       if (char == '"' && this.#escapeSequenceBuffer) {
-        this.#throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer);
+        this.#throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer.join(''));
       }
-      this.#escapeSequenceBuffer += char;
-      const value = getCharFromEscapeSequence(this.#escapeSequenceBuffer);
+      this.#escapeSequenceBuffer.push(char);
+      const value = getCharFromEscapeSequence(this.#escapeSequenceBuffer.join(''));
       if (value == ESCAPE_SEQUENCE_ERROR) {
         this.#throwSyntaxError('Illegal escape sequence: \\' + this.#escapeSequenceBuffer);
       } else if (value) {
-        this.#stringBuffer += value;
+        this.#stringBuffer.push(value);
         this.#escapeSequenceBuffer = null;
       }
     }

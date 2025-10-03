@@ -58,11 +58,12 @@ function generateRandomJson(seed, depth) {
 
 function time(iterations, fn, ...args) {
   let start = Date.now();
-  for (let i = 0; i < iterations; i++) {
+  for (let i = 1; i < iterations; i++) {
     fn(...args);
   }
+  let result = fn(...args);fn(...args);
   let end = Date.now();
-  return (end - start) / iterations;
+  return {result, time: (end - start) / iterations};
 }
 
 {
@@ -71,8 +72,8 @@ function time(iterations, fn, ...args) {
   console.log('Stringifying the JSON object');
   let str = JSON.stringify(obj);
   console.log(str.length + ' characters');
-  let t0 = time(1, JSON.parse, str);
-  let t1 = time(1, parse, str);
+  let {result: o0, time: t0} = time(1, JSON.parse, str);
+  let {result: o1, time: t1} = time(1, parse, str);
   console.log(`JSON.parse: ${t0}ms, parse: ${t1}ms, ratio: ${Math.round(10 * t1/t0) / 10}`);
-//  assert.deepStrictEqual(parse(JSON.stringify(obj)), obj);
+  assert.deepStrictEqual(o0, o1);
 }
