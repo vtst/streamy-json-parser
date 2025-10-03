@@ -2,7 +2,7 @@
   "name": "streamy-json-parser",
   "version": "1.0.0",
   "description": "A JSON parser that receives its input as a stream of strings",
-  "main": "index.js",
+  "main": "dist/index.js",
   "module": "dist/index.esm.js",  
   "browser": "dist/streamy-json-parser.min.js",
   "type": "module",
