@@ -119,8 +119,8 @@ export class Lexer {
   #lastCharIsCR = false;
   // The current location in the input stream (index, line and column).
   location = {index: 0, line: 1, column: 0};
-  // The location of the first token added in either stringBuffer or literalBuffer.
-  #bufferStartLocation = null;
+  // The location of the first token added in  literalBuffer.
+  #literalBufferStartLocation = null;
 
   #throwSyntaxError(message, opt_location) {
     throw new SyntaxError(opt_location || this.location, message);
@@ -135,7 +135,7 @@ export class Lexer {
       default:
         const number = Number(this.#literalBuffer);
         if (Number.isFinite(number)) return number;
-        this.#throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#bufferStartLocation);
+        this.#throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#literalBufferStartLocation);
     }
   }
 
@@ -150,7 +150,7 @@ export class Lexer {
   // Push a token for what is currently stored in the state, and reset the state.
   #flushState() {
     if (this.#literalBuffer !== null) {
-      this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue(), this.#bufferStartLocation);
+      this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue(), this.#literalBufferStartLocation);
       this.#literalBuffer = null;
     }
     if (this.#lastCharIsCR) {
@@ -167,9 +167,8 @@ export class Lexer {
   // Push a token for what is stored in the string buffer, and reset it.
   #flushString() {
     if (this.#stringBuffer) {
-      this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''), this.#bufferStartLocation);
+      this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''));
       this.#stringBuffer = [];
-      if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
     }
   }
 
@@ -210,7 +209,6 @@ export class Lexer {
         case '"':
           this.#flushState();
           this.#stringBuffer = [];
-          if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
           this.#flushStateAndPushToken(TOKEN_TYPE.START_STRING);
           break;
         case ' ':
@@ -222,7 +220,7 @@ export class Lexer {
         default:
           if (this.#literalBuffer === null) {
             this.#literalBuffer = char;
-            if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
+            if (!this.#options.ignore_locations) this.#literalBufferStartLocation = {... this.location};
           } else {
             this.#literalBuffer += char;
           }
