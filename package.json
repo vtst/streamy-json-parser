@@ -1,5 +1,5 @@
 {
-  "name": "streaming-json-parser",
+  "name": "streamy-json-parser",
   "version": "1.0.0",
   "description": "A JSON parser that receives its input as a stream of strings",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vtst/streaming-json-parser.git"
+    "url": "git+https://github.com/vtst/streamy-json-parser.git"
   },
   "keywords": [
     "json",
@@ -21,9 +21,9 @@
   "author": "Vincent Simonet",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/vtst/streaming-json-parser/issues"
+    "url": "https://github.com/vtst/streamy-json-parser/issues"
   },
-  "homepage": "https://github.com/vtst/streaming-json-parser#readme",
+  "homepage": "https://github.com/vtst/streamy-json-parser#readme",
   "devDependencies": {
     "@babel/cli": "^7.28.3",
     "@babel/core": "^7.28.4",
