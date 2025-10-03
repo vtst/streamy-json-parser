@@ -3,7 +3,7 @@
   "version": "1.0.3",
   "description": "A JSON parser that receives its input as a stream of strings",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",  
+  "module": "dist/index.esm.js",
   "browser": "dist/streamy-json-parser.min.js",
   "scripts": {
     "test": "node test/*.js",
