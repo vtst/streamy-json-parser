@@ -2,16 +2,13 @@ import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
 import pkg from './package.json';
 
-// Name of the global variable that will be exposed in the browser (e.g., window.StreamyJsonParser)
 const globalName = 'StreamyJsonParser';
-const external = Object.keys(pkg.dependencies || {});
 
-// Base configuration for the bundle
 const config = {
   input: 'src/index.js',
   
   // Exclude external dependencies so they are not included in the bundle (if any)
-  external: external,
+  external: Object.keys(pkg.dependencies || {}),
 
   plugins: [
     babel({
@@ -21,22 +18,24 @@ const config = {
   ],
 
   output: [
-    // 1. ESM output (for other Node/React/Vue projects)
+
+    // ESM output (for other Node/React/Vue projects)
     {
       file: pkg.module, // Defined in package.json (e.g., dist/index.esm.js)
       format: 'es',
+      exports: 'default'
     },
     
-    // 2. NON-MINIFIED UMD output (useful for debugging)
+    // Non-minified UMD output (useful for debugging)
     {
       file: pkg.main, // Defined in package.json (e.g., dist/index.js)
       format: 'umd',
-      name: globalName,
+      name: globalName
     },
 
-    // 3. MINIFIED UMD output for CDN (this is what you want for production)
+    // Minified UMD output for CDN
     {
-      file: pkg.browser, // New key in package.json (e.g., dist/streamy-json-parser.min.js)
+      file: pkg.browser,
       format: 'umd',
       name: globalName,
       sourcemap: true, // Generates a source map for debugging
