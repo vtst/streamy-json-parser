@@ -1,0 +1,32 @@
+{
+  "name": "streaming-json-parser",
+  "version": "1.0.0",
+  "description": "A JSON parser that receives its input as a stream of strings",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test/*.js",
+    "build": "babel src --out-dir dist",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vtst/streaming-json-parser.git"
+  },
+  "keywords": [
+    "json",
+    "parser",
+    "streaming"
+  ],
+  "author": "Vincent Simonet",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vtst/streaming-json-parser/issues"
+  },
+  "homepage": "https://github.com/vtst/streaming-json-parser#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3"
+  }
+}
