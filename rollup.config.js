@@ -21,21 +21,21 @@ const config = {
 
     // ESM output (for other Node/React/Vue projects)
     {
-      file: pkg.module, // Defined in package.json (e.g., dist/index.esm.js)
+      file: pkg.exports['.'].import, // Defined in package.json (e.g., dist/index.esm.js)
       format: 'es',
       exports: 'default'
     },
     
     // Non-minified UMD output (useful for debugging)
     {
-      file: pkg.main, // Defined in package.json (e.g., dist/index.js)
+      file: pkg.exports['.'].require, // Defined in package.json (e.g., dist/index.js)
       format: 'umd',
       name: globalName
     },
 
     // Minified UMD output for CDN
     {
-      file: pkg.browser,
+      file: pkg.exports['.'].browser,
       format: 'umd',
       name: globalName,
       sourcemap: true, // Generates a source map for debugging

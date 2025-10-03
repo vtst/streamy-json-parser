@@ -2,10 +2,14 @@
   "name": "streamy-json-parser",
   "version": "1.0.3",
   "description": "A JSON parser that receives its input as a stream of strings",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "browser": "dist/streamy-json-parser.min.js",
-  "scripts": {
+  "type": "module",
+  "exports": {
+    ".": {
+      "browser": "./dist/streamy-json-parser.min.js",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js"
+    }
+  },  "scripts": {
     "test": "node test/success_test.js && node test/failure_test.js",
     "build": "rollup -c",
     "prepublishOnly": "npm run build"
