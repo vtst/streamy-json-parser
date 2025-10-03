@@ -75,8 +75,13 @@ export class Lexer {
 
   tokens = [];  // The tokens emitted by the lexer.
   #isClosed = false;  // Whether the lexer has finished lexing the input string.
+  #options;
 
-  constructor() {}
+  // Options:
+  // * ignore_locations (bool): if true, locations are not tracked.
+  constructor(opt_options) {
+    this.#options = opt_options || {};
+  }
 
   // Append some text to lex to the input string.
   push(text) {
@@ -135,9 +140,11 @@ export class Lexer {
   }
 
   #pushToken(type, opt_value, opt_location) {
-    let token = {type, location: opt_location || {... this.location}};
-    if (opt_value !== undefined) token.value = opt_value;
-    this.tokens.push(token);
+    this.tokens.push({
+      type,
+      location: this.#options.ignore_locations ? undefined : (opt_location || {... this.location}),
+      value: opt_value
+    });
   }
 
   // Push a token for what is currently stored in the state, and reset the state.
@@ -162,11 +169,12 @@ export class Lexer {
     if (this.#stringBuffer) {
       this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''), this.#bufferStartLocation);
       this.#stringBuffer = [];
-      this.#bufferStartLocation = {... this.location};
+      if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
     }
   }
 
   #updateLocation(char) {
+    if (this.#options.ignore_locations) return;
     ++this.location.index;
     ++this.location.column;
     switch (char) {
@@ -202,7 +210,7 @@ export class Lexer {
         case '"':
           this.#flushState();
           this.#stringBuffer = [];
-          this.#bufferStartLocation = {... this.location};
+          if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
           this.#flushStateAndPushToken(TOKEN_TYPE.START_STRING);
           break;
         case ' ':
@@ -214,7 +222,7 @@ export class Lexer {
         default:
           if (this.#literalBuffer === null) {
             this.#literalBuffer = char;
-            this.#bufferStartLocation = {... this.location};
+            if (!this.#options.ignore_locations) this.#bufferStartLocation = {... this.location};
           } else {
             this.#literalBuffer += char;
           }
