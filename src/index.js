@@ -1,5 +1,5 @@
-export { Parser, parse } from './parser.js';
-export { SyntaxError } from './error.js';
+import { SyntaxError } from './error.js';
+import { Parser, parse } from './parser.js';
 
 export default {
   Parser,
