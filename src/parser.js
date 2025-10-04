@@ -96,7 +96,7 @@ export class Parser {
   // * {type: STRING, value: "..."} 
   #stack;
 
-  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#lexer.location); }
+  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message); }
   #throwUnexpectedTokenError(tokenType) { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(tokenType)}"`); }
 
   #expectObjectPropertyName(context) {
@@ -227,6 +227,7 @@ export class Parser {
           break;
         case TOKEN_TYPE.END_STRING:
           CHECK(context.type === CONTEXT_TYPE.STRING);
+          context.value += this.#lexer.tokenValues[index];
           this.#stack.pop();
           const newContext = this.#stack.at(-1);
           if (this.#expectObjectPropertyName(newContext)) {
