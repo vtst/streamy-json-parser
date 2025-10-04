@@ -184,7 +184,7 @@ export class Lexer {
 
   // Push a token for what is stored in the string buffer, and reset it.
   #flushString() {
-    if (this.#mode === MODE.STRING) {
+    if (this.#mode !== MODE.MAIN) {  // #mode === MODE.STRING || #mode === MODE.ESCAPE
       this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''));
       this.#stringBuffer = [];
     }
