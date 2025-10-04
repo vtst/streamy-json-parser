@@ -55,6 +55,7 @@ export class Parser {
     }
     this.#lexer.flush();
     this.#parse();
+    this.#includeIncompleteString();
   }
 
   // End the parsing.
@@ -239,13 +240,13 @@ export class Parser {
           break;      
       }
     }
-    // Include incomplete string.
+  }
+
+  #includeIncompleteString() {
     if (this.#options.include_incomplete_strings && this.#stack.length > 1) {
       const context1 = this.#stack.at(-1), context2 = this.#stack.at(-2);
       if (context1.type == CONTEXT_TYPE.STRING && !this.#expectObjectPropertyName(context2)) {
-        this.#setIncompleteValue(
-          context2,
-          context1.value + (typeof this.#options.include_incomplete_strings === 'string' ? this.#options.include_incomplete_strings : ''));
+        this.#setIncompleteValue(context2, context1.value + (typeof this.#options.include_incomplete_strings === 'string' ? this.#options.include_incomplete_strings : ''));
       }
     }
   }

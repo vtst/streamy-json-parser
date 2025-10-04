@@ -110,6 +110,5 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
   * Add objects to events
 * Bug
   * Correctly report location of literals
-  * Move Include incomplete string
 * Optimization
   * Simplify parser stack
