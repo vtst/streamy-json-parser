@@ -115,8 +115,6 @@ export class Lexer {
   #location = zeroLocation();
   // The length of the last line.
   #lastLineLength = 0;
-  // The location of the first token added in  literalBuffer.
-  #literalBufferStartLocation = null;
   // True if the last character was a \r.
   #lastCharIsCR = false;
 
@@ -160,7 +158,7 @@ export class Lexer {
   // Push a token for what is currently stored in the state, and reset the state.
   #flushState() {
     if (this.#literalBuffer !== null) {
-      this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue(), this.#literalBufferStartLocation);
+      this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue());
       this.#literalBuffer = null;
     }
   }
@@ -228,7 +226,6 @@ export class Lexer {
         default:
           if (this.#literalBuffer === null) {
             this.#literalBuffer = char;
-            this.#literalBufferStartLocation = {... this.#location};
           } else {
             this.#literalBuffer += char;
           }
