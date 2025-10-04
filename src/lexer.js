@@ -254,7 +254,6 @@ export class Lexer {
           break;
         case '"':
           this.#flushString(true);
-          this.#stringBuffer = [];
           this.#mode = MODE.MAIN;
           break;
         case '\n':
