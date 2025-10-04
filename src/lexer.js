@@ -64,7 +64,7 @@ function getCharFromEscapeSequence(escapeSequence) {
   }
 }
 
-const STATE = {
+const MODE = {
   MAIN: 1,
   STRING: 2,
   ESCAPE_SEQUENCE: 3
@@ -101,13 +101,14 @@ export class Lexer {
   close() {
     this.numberOfTokens = 0;
     this.#flushState();
-    if (this.#stringBuffer) this.throwSyntaxError('Unterminated string');
+    if (this.#mode !== MODE.MAIN) this.throwSyntaxError('Unterminated string');
   }
 
   reset() {
-    this.#stringBuffer = null;
+    this.#mode = MODE.MAIN;
+    this.#stringBuffer = [];
     this.#literalBuffer = null;
-    this.#escapeSequenceBuffer = null;
+    this.#escapeSequenceBuffer = [];
     this.#location = {index: 0, line: 1, column: 0};
     this.#lastLineLength = 0;
     this.#lastCharIsCR = false;
@@ -116,6 +117,8 @@ export class Lexer {
   // --------------------------------------------------------------------------------
   // The implementation of the lexer.
 
+  // The current state of lexing.
+  #mode;
   // The buffer for accumulating string content while parsing a JSON string.
   #stringBuffer;
   // The buffer for accumulating characters in an escape sequence within a string.
@@ -182,7 +185,7 @@ export class Lexer {
 
   // Push a token for what is stored in the string buffer, and reset it.
   #flushString() {
-    if (this.#stringBuffer) {
+    if (this.#mode === MODE.STRING) {
       this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''));
       this.#stringBuffer = [];
     }
@@ -212,7 +215,7 @@ export class Lexer {
   // Process a single character of input.
   #lex(char) {
     this.#updateLocation(char);
-    if (this.#stringBuffer === null) {
+    if (this.#mode === MODE.MAIN) {
       // Outside of a string.
       switch (char) {
         // Special characters
@@ -226,6 +229,7 @@ export class Lexer {
         case '"':
           this.#flushState();
           this.#stringBuffer = [];
+          this.#mode = MODE.STRING;
           this.#pushToken(TOKEN_TYPE.START_STRING);
           break;
         case ' ':
@@ -242,17 +246,18 @@ export class Lexer {
           }
           break;
       }
-    } else if (this.#escapeSequenceBuffer === null) {
+    } else if (this.#mode === MODE.STRING) {
       // In a string, outside of an escape sequence.
       switch (char) {
         case '\\':
           this.#flushState();
-          this.#escapeSequenceBuffer = [];
+          this.#mode = MODE.ESCAPE_SEQUENCE;
           break;
         case '"':
           this.#flushString();
           this.#pushToken(TOKEN_TYPE.END_STRING);
-          this.#stringBuffer = null;
+          this.#stringBuffer = [];
+          this.#mode = MODE.MAIN;
           break;
         case '\n':
         case '\r':
@@ -263,7 +268,7 @@ export class Lexer {
       }
     } else {
       // In a string, in an escape sequence.
-      if (char == '"' && this.#escapeSequenceBuffer) {
+      if (char === '"' && this.#escapeSequenceBuffer) {
         this.throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer.join(''));
       }
       this.#escapeSequenceBuffer.push(char);
@@ -272,7 +277,8 @@ export class Lexer {
         this.throwSyntaxError('Illegal escape sequence: \\' + this.#escapeSequenceBuffer);
       } else if (value) {
         this.#stringBuffer.push(value);
-        this.#escapeSequenceBuffer = null;
+        this.#escapeSequenceBuffer = [];
+        this.#mode = MODE.STRING;
       }
     }
   }
