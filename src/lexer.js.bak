@@ -117,7 +117,7 @@ export class Lexer {
   // --------------------------------------------------------------------------------
   // The implementation of the lexer.
 
-  // The current mode of lexing.
+  // The current state of lexing.
   #mode;
   // The buffer for accumulating string content while parsing a JSON string.
   #stringBuffer;
@@ -163,6 +163,7 @@ export class Lexer {
   }
 
   #pushToken(type, opt_value, opt_location) {
+    let location = opt_location === undefined ? this.#location : opt_location;
     this.tokenTypes[this.numberOfTokens] = type;
     if (opt_value !== undefined) this.tokenValues[this.numberOfTokens] = opt_value;
     ++this.numberOfTokens;
@@ -186,7 +187,7 @@ export class Lexer {
   #flushString() {
     if (this.#mode === MODE.STRING) {
       this.#pushToken(TOKEN_TYPE.STRING_CHUNK, this.#stringBuffer.join(''));
-      this.#stringBuffer = [];
+      this.#stringBuffer.length = 0;
     }
   }
 
@@ -215,37 +216,37 @@ export class Lexer {
   #lex(char) {
     this.#updateLocation(char);
     if (this.#mode === MODE.MAIN) {
-      // Outside of a string.
-      switch (char) {
-        // Special characters
-        case '{': this.#flushStateAndPushToken(TOKEN_TYPE.START_OBJECT); break;
-        case '}': this.#flushStateAndPushToken(TOKEN_TYPE.END_OBJECT); break;
-        case '[': this.#flushStateAndPushToken(TOKEN_TYPE.START_ARRAY); break;
-        case ']': this.#flushStateAndPushToken(TOKEN_TYPE.END_ARRAY); break;
-        case ',': this.#flushStateAndPushToken(TOKEN_TYPE.COMA); break;
-        case ':': this.#flushStateAndPushToken(TOKEN_TYPE.COLON); break;
-        // Strings
-        case '"':
-          this.#flushState();
-          this.#stringBuffer = [];
-          this.#mode = MODE.STRING;
-          this.#pushToken(TOKEN_TYPE.START_STRING);
-          break;
-        case ' ':
-        case '\t':
-        case '\r':
-        case '\n':
-          this.#flushState();
-          break;
-        default:
-          if (this.#literalBuffer === null) {
-            this.#literalBuffer = char;
-          } else {
-            this.#literalBuffer += char;
-          }
-          break;
-      }
-    } else if (this.#mode === MODE.STRING) {
+        // Outside of a string.
+        switch (char) {
+          // Special characters
+          case '{': this.#flushStateAndPushToken(TOKEN_TYPE.START_OBJECT); break;
+          case '}': this.#flushStateAndPushToken(TOKEN_TYPE.END_OBJECT); break;
+          case '[': this.#flushStateAndPushToken(TOKEN_TYPE.START_ARRAY); break;
+          case ']': this.#flushStateAndPushToken(TOKEN_TYPE.END_ARRAY); break;
+          case ',': this.#flushStateAndPushToken(TOKEN_TYPE.COMA); break;
+          case ':': this.#flushStateAndPushToken(TOKEN_TYPE.COLON); break;
+          // Strings
+          case '"':
+            this.#flushState();
+            this.#stringBuffer.length = 0;
+            this.#mode = MODE.STRING;
+            this.#pushToken(TOKEN_TYPE.START_STRING);
+            break;
+          case ' ':
+          case '\t':
+          case '\r':
+          case '\n':
+            this.#flushState();
+            break;
+          default:
+            if (this.#literalBuffer === null) {
+              this.#literalBuffer = char;
+            } else {
+              this.#literalBuffer += char;
+            }
+            break;
+        }
+      } else if (this.#mode === MODE.STRING) {
       // In a string, outside of an escape sequence.
       switch (char) {
         case '\\':
@@ -255,7 +256,7 @@ export class Lexer {
         case '"':
           this.#flushString();
           this.#pushToken(TOKEN_TYPE.END_STRING);
-          this.#stringBuffer = [];
+          this.#stringBuffer.length = 0;
           this.#mode = MODE.MAIN;
           break;
         case '\n':
@@ -265,7 +266,7 @@ export class Lexer {
           this.#stringBuffer.push(char);
           break;
       }
-    } else {
+      } else {
       // In a string, in an escape sequence.
       if (char === '"' && this.#escapeSequenceBuffer) {
         this.throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer.join(''));
@@ -276,7 +277,7 @@ export class Lexer {
         this.throwSyntaxError('Illegal escape sequence: \\' + this.#escapeSequenceBuffer);
       } else if (value) {
         this.#stringBuffer.push(value);
-        this.#escapeSequenceBuffer = [];
+        this.#escapeSequenceBuffer.length = 0;
         this.#mode = MODE.STRING;
       }
     }
