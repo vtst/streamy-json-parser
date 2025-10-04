@@ -85,6 +85,9 @@ function parseInChunks(str, chunkSize, opt_placeholder) {
 }
 
 {
+  console.log('Starting with a small test to check everything is OK');
+  let smallObj = generateRandomJson('abc', 2);
+  assert.deepStrictEqual(parseInChunks(JSON.stringify(smallObj), 0), smallObj);
   console.log('Generating a large JSON object');
   let obj = generateRandomJson('abc', 10);
   console.log('Stringifying the JSON object');
