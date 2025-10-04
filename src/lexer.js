@@ -163,7 +163,6 @@ export class Lexer {
   }
 
   #pushToken(type, opt_value, opt_location) {
-    let location = opt_location === undefined ? this.#location : opt_location;
     this.tokenTypes[this.numberOfTokens] = type;
     if (opt_value !== undefined) this.tokenValues[this.numberOfTokens] = opt_value;
     ++this.numberOfTokens;
