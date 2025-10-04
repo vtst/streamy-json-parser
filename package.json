@@ -11,6 +11,7 @@
     }
   },  "scripts": {
     "test": "node test/success_test.js && node test/failure_test.js",
+    "testperf": "node test/perf_test.js",
     "build": "rollup -c",
     "prepublishOnly": "npm run build"
   },
