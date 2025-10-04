@@ -117,8 +117,6 @@ export class Lexer {
   #escapeSequenceBuffer = null;
   // The buffer for accumulating literal values (true, false, null, or numbers).
   #literalBuffer = null;
-  // Tracks if the last character processed was a carriage return (\r).
-  #lastCharIsCR = false;
   // The current location in the input stream
   #location = 0;
   // The location of the first token added in  literalBuffer.
@@ -156,9 +154,6 @@ export class Lexer {
     if (this.#literalBuffer !== null) {
       this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue(), this.#literalBufferStartLocation);
       this.#literalBuffer = null;
-    }
-    if (this.#lastCharIsCR) {
-      this.#lastCharIsCR = false;
     }
   }
 
