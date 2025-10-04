@@ -73,39 +73,29 @@ export class Lexer {
   // --------------------------------------------------------------------------------
   // The interface for the lexer.
 
-  tokens = [];  // The tokens emitted by the lexer.
-  #isClosed = false;  // Whether the lexer has finished lexing the input string.
-  #options;
+  // These fields are used as output for the lex, flush and close functions.
+  numberOfTokens = 0;
+  tokenTypes = [null, null];
+  tokenValues = [null, null];
 
-  constructor(opt_options) {
-    this.#options = opt_options || {};
+  lex(char) {
+    this.numberOfTokens = 0;
+    this.#lex(char);
   }
 
-  #currentChunkLocation;
-
-  // Append some text to lex to the input string.
-  push(text) {
-    if (this.#isClosed) throw 'Cannot push more text to a closed lexer.';
-    this.#currentChunkLocation = this.#location;
-    for (let i = 0; i < text.length; ++i) {
-      this.#lexChar(text[i]);
-    }
-    // Emit a string chunk if stopping in the middle of a string.
+  flush() {
+    this.numberOfTokens = 0;
     this.#flushString();
   }
 
-  // End the lexing.  Note that a token might be added to .token (in the case
-  // where the lexed JSON is a numeric literal.)
   close() {
-    this.#isClosed = true;
+    this.numberOfTokens = 0;
     this.#flushState();
     if (this.#stringBuffer) this.throwSyntaxError('Unterminated string');
   }
 
   reset() {
-    this.tokens = [];
     this.#location = 0;
-    this.#isClosed = false;
   }
 
   // --------------------------------------------------------------------------------
@@ -124,7 +114,7 @@ export class Lexer {
 
   throwSyntaxError(message, opt_location) {
     let location = opt_location === undefined ? this.#location : opt_location;
-    throw new SyntaxError(message, location, location - this.#currentChunkLocation);
+    throw new SyntaxError(message, location, location);
   }
 
   // Convert the literal value that just got lexed into an actual JavaScript value.
@@ -142,11 +132,9 @@ export class Lexer {
 
   #pushToken(type, opt_value, opt_location) {
     let location = opt_location === undefined ? this.#location : opt_location;
-    if (opt_value === undefined) {
-      this.tokens.push(type, location);
-    } else {
-      this.tokens.push(type, location, opt_value);
-    }
+    this.tokenTypes[this.numberOfTokens] = type;
+    if (opt_value !== undefined) this.tokenValues[this.numberOfTokens] = opt_value;
+    ++this.numberOfTokens;
   }
 
   // Push a token for what is currently stored in the state, and reset the state.
@@ -172,7 +160,7 @@ export class Lexer {
   }
 
   // Process a single character of input.
-  #lexChar(char) {
+  #lex(char) {
     ++this.#location;
     if (this.#stringBuffer === null) {
       // Outside of a string.
@@ -188,7 +176,7 @@ export class Lexer {
         case '"':
           this.#flushState();
           this.#stringBuffer = [];
-          this.#flushStateAndPushToken(TOKEN_TYPE.START_STRING);
+          this.#pushToken(TOKEN_TYPE.START_STRING);
           break;
         case ' ':
         case '\t':

@@ -48,7 +48,12 @@ export class Parser {
 
   // Append some text to lex to the input string.
   push(text) {
-    this.#lexer.push(text);
+    const length = text.length;
+    for (let index = 0; index < length; ++index) {
+      this.#lexer.lex(text[index]);
+      this.#parse();
+    }
+    this.#lexer.flush();
     this.#parse();
   }
 
@@ -61,13 +66,12 @@ export class Parser {
 
   reset() {
     this.#lexer.reset();
-    this.#index = 0;
     this.#events = [];
-    this.#stack = [{type: CONTEXT_TYPE.ARRAY, value: [], key: 0, expectedPiece: PIECE.VALUE, isEmpty: false}];
+    this.#stack = [{type: CONTEXT_TYPE.ARRAY, value: [], key: 0, expectedPiece: PIECE.VALUE, isEmpty: true}];
   }
 
   setPlaceholder(placeholder) {
-    if (this.#index !== 0) throw 'Cannot set placeholder after parsing has started.';
+    if (this.#stack.length !== 1 || this.#stack[0].value.length !== 0) throw 'Cannot set placeholder after starting parsing.';
     this.#stack[0].value[0] = placeholder;
     this.#hasPlaceholder = true;
   }
@@ -83,9 +87,6 @@ export class Parser {
   // --------------------------------------------------------------------------------
   // The implementation for the parser.
 
-  // The index of the next token of the lexer to read.
-  #index;
-
   // A stack of contexts designating the current node of the root value being set.
   // Possible stack values:
   // * {type: CONTEXT_TYPE.ARRAY, value: [...], key: <number> }
@@ -95,11 +96,8 @@ export class Parser {
   // * {type: STRING, value: "..."} 
   #stack;
 
-  #getTokenType() { return this.#lexer.tokens[this.#index]; }
-  #getTokenLocation() { return this.#lexer.tokens[this.#index + 1]; }
-  #getTokenValue() { return this.#lexer.tokens[this.#index + 2]; }
-  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#getTokenLocation()); }
-  #throwUnexpectedTokenError() { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(this.#getTokenType())}"`); }
+  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#lexer.location); }
+  #throwUnexpectedTokenError(tokenType) { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(tokenType)}"`); }
 
   #expectObjectPropertyName(context) {
     return context.type === CONTEXT_TYPE.OBJECT && context.expectedPiece === PIECE.PROPERTY_NAME;
@@ -170,12 +168,12 @@ export class Parser {
   }
 
   #parse() {
-    for (; this.#index < this.#lexer.tokens.length; this.#index += 2) {
+    for (let index = 0; index < this.#lexer.numberOfTokens; ++index) {
       const context = this.#stack.at(-1);
-      switch (this.#getTokenType()) {
+      const tokenType = this.#lexer.tokenTypes[index];
+      switch (tokenType) {
         case TOKEN_TYPE.LITERAL:
-          this.#setValue(this.#getTokenValue());
-          ++this.#index;
+          this.#setValue(this.#lexer.tokenValues[index]);
           break;
         case TOKEN_TYPE.START_OBJECT:
           let newObject = this.#getValue(context) || {};
@@ -185,7 +183,7 @@ export class Parser {
           break;
         case TOKEN_TYPE.END_OBJECT:
           if (context.type !== CONTEXT_TYPE.OBJECT || context.expectedPiece !== (context.isEmpty ? PIECE.PROPERTY_NAME : PIECE.COMA)) {
-            this.#throwUnexpectedTokenError();
+            this.#throwUnexpectedTokenError(tokenType);
           }
           this.#closeArrayOrObject(context);
           break;
@@ -196,16 +194,16 @@ export class Parser {
           break;
         case TOKEN_TYPE.END_ARRAY:
           if (context.type !== CONTEXT_TYPE.ARRAY || (!context.isEmpty && context.expectedPiece === PIECE.VALUE)) {
-            this.#throwUnexpectedTokenError();
+            this.#throwUnexpectedTokenError(tokenType);
           }
           this.#closeArrayOrObject(context);
           break;
         case TOKEN_TYPE.COLON:
           switch (context.type) {
-            case CONTEXT_TYPE.ARRAY: this.#throwUnexpectedTokenError();
+            case CONTEXT_TYPE.ARRAY: this.#throwUnexpectedTokenError(tokenType);
             case CONTEXT_TYPE.OBJECT:
               if (context.type !== CONTEXT_TYPE.OBJECT || context.expectedPiece !== PIECE.COLON) {
-                this.#throwUnexpectedTokenError();
+                this.#throwUnexpectedTokenError(tokenType);
               }
               context.expectedPiece = PIECE.VALUE;
               break;
@@ -214,19 +212,18 @@ export class Parser {
           break;
         case TOKEN_TYPE.COMA:
           CHECK(context.type !== CONTEXT_TYPE.STRING);
-          if (context.expectedPiece !== PIECE.COMA) this.#throwUnexpectedTokenError();
+          if (context.expectedPiece !== PIECE.COMA) this.#throwUnexpectedTokenError(tokenType);
           this.#nextArrayItemOrObjectProperty(context);
           break;
         case TOKEN_TYPE.START_STRING:
           if (!(this.#canSetValue(context) || this.#expectObjectPropertyName(context))) {
-            this.#throwUnexpectedTokenError();
+            this.#throwUnexpectedTokenError(tokenType);
           }
           this.#stack.push({type: CONTEXT_TYPE.STRING, value: ''});
           break;
         case TOKEN_TYPE.STRING_CHUNK:
           CHECK(context.type === CONTEXT_TYPE.STRING);
-          context.value += this.#getTokenValue();
-          ++this.#index;
+          context.value += this.#lexer.tokenValues[index];
           break;
         case TOKEN_TYPE.END_STRING:
           CHECK(context.type === CONTEXT_TYPE.STRING);
@@ -253,7 +250,7 @@ export class Parser {
   }
 
   #throwSyntaxErrorIfStackIsNotEmpty() {
-    if (this.#stack.length == 1) return;
+    if (this.#stack.length === 1) return;
     let context = this.#stack.at(-1);
     this.#throwSyntaxError(`Unterminated ${CONTEXT_TYPE_NAME[context.type]}`);
   }
