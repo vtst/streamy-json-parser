@@ -95,7 +95,7 @@ export class Lexer {
   }
 
   reset() {
-    this.#location = 0;
+    this.#location = {index: 0, line: 1, column: 0};
   }
 
   // --------------------------------------------------------------------------------
@@ -108,9 +108,11 @@ export class Lexer {
   // The buffer for accumulating literal values (true, false, null, or numbers).
   #literalBuffer = null;
   // The current location in the input stream
-  #location = 0;
+  #location = {index: 0, line: 1, column: 0};
   // The location of the first token added in  literalBuffer.
   #literalBufferStartLocation = null;
+  // True if the last character was a \r.
+  #lastCharIsCR = false;
 
   throwSyntaxError(message, opt_location) {
     let location = opt_location === undefined ? this.#location : opt_location;
@@ -159,9 +161,28 @@ export class Lexer {
     }
   }
 
+  #updateLocation(char) {
+    ++this.#location.index;
+    ++this.#location.column;
+    switch (char) {
+      case '\r':
+        ++this.#location.line;
+        this.#location.column = 0;
+        this.#lastCharIsCR = true;
+        break;
+      case '\n':
+        if (!this.#lastCharIsCR) {
+          ++this.#location.line;
+          this.#location.column = 0;
+        }
+      default:
+        this.#lastCharIsCR = false;
+    }
+  }
+
   // Process a single character of input.
   #lex(char) {
-    ++this.#location;
+    this.#updateLocation(char);
     if (this.#stringBuffer === null) {
       // Outside of a string.
       switch (char) {
@@ -187,7 +208,7 @@ export class Lexer {
         default:
           if (this.#literalBuffer === null) {
             this.#literalBuffer = char;
-            this.#literalBufferStartLocation = this.#location;
+            this.#literalBufferStartLocation = {... this.#location};
           } else {
             this.#literalBuffer += char;
           }

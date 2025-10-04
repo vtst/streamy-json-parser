@@ -168,7 +168,7 @@ export class Parser {
   }
 
   #parse() {
-    for (const index = 0; index < this.#lexer.numberOfTokens; ++index) {
+    for (let index = 0; index < this.#lexer.numberOfTokens; ++index) {
       const context = this.#stack.at(-1);
       const tokenType = this.#lexer.tokenTypes[index];
       switch (tokenType) {
