@@ -84,6 +84,8 @@ export class Lexer {
   }
 
   // These fields are used as output for the lex, flush and close functions.
+  // The lexer can output zero, one or two tokens at a time. When there are two tokens,
+  // the first one is always a literal value.
   numberOfTokens = 0;
   tokenTypes = [null, null];
   tokenValues = [null, null];
@@ -100,8 +102,8 @@ export class Lexer {
 
   close() {
     this.numberOfTokens = 0;
-    this.#flushState();
     if (this.#mode !== MODE.MAIN) this.throwSyntaxError('Unterminated string');
+    this.#flushLiteral();
   }
 
   reset() {
@@ -169,17 +171,11 @@ export class Lexer {
   }
 
   // Push a token for what is currently stored in the state, and reset the state.
-  #flushState() {
+  #flushLiteral() {
     if (this.#literalBuffer !== null) {
       this.#pushToken(TOKEN_TYPE.LITERAL, this.#getLiteralBufferValue());
       this.#literalBuffer = null;
     }
-  }
-
-  // Helper function for flushing state and pushing a token.
-  #flushStateAndPushToken(type, opt_value) {
-    this.#flushState();
-    this.#pushToken(type, opt_value);
   }
 
   // Push a token for what is stored in the string buffer, and reset it.
@@ -218,15 +214,15 @@ export class Lexer {
       // Outside of a string.
       switch (char) {
         // Special characters
-        case '{': this.#flushStateAndPushToken(TOKEN_TYPE.START_OBJECT); break;
-        case '}': this.#flushStateAndPushToken(TOKEN_TYPE.END_OBJECT); break;
-        case '[': this.#flushStateAndPushToken(TOKEN_TYPE.START_ARRAY); break;
-        case ']': this.#flushStateAndPushToken(TOKEN_TYPE.END_ARRAY); break;
-        case ',': this.#flushStateAndPushToken(TOKEN_TYPE.COMA); break;
-        case ':': this.#flushStateAndPushToken(TOKEN_TYPE.COLON); break;
+        case '{': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.START_OBJECT); break;
+        case '}': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.END_OBJECT); break;
+        case '[': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.START_ARRAY); break;
+        case ']': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.END_ARRAY); break;
+        case ',': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.COMA); break;
+        case ':': this.#flushLiteral(); this.#pushToken(TOKEN_TYPE.COLON); break;
         // Strings
         case '"':
-          this.#flushState();
+          this.#flushLiteral();
           this.#stringBuffer = [];
           this.#mode = MODE.STRING;
           this.#pushToken(TOKEN_TYPE.START_STRING);
@@ -235,7 +231,7 @@ export class Lexer {
         case '\t':
         case '\r':
         case '\n':
-          this.#flushState();
+          this.#flushLiteral();
           break;
         default:
           if (this.#literalBuffer === null) {
@@ -249,7 +245,7 @@ export class Lexer {
       // In a string, outside of an escape sequence.
       switch (char) {
         case '\\':
-          this.#flushState();
+          this.#flushLiteral();
           this.#mode = MODE.ESCAPE_SEQUENCE;
           break;
         case '"':
@@ -259,7 +255,7 @@ export class Lexer {
         case '\n':
         case '\r':
         default:
-          this.#flushState();
+          this.#flushLiteral();
           this.#stringBuffer.push(char);
           break;
       }
