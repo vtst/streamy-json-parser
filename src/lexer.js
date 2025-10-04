@@ -64,6 +64,10 @@ function getCharFromEscapeSequence(escapeSequence) {
   }
 }
 
+function zeroLocation() {
+  return {index: 0, line: 1, column: 0};
+}
+
 // A lexer for JSON strings. The input is given by calling push() (potentially multiple times)
 // and close() (once). Lexing happens incrementally, and tokens are pushed in .tokens as they are lexed.
 // Tokens are of the following type: {type: TOKEN_TYPE, value: string?}
@@ -95,7 +99,7 @@ export class Lexer {
   }
 
   reset() {
-    this.#location = {index: 0, line: 1, column: 0};
+    this.#location = zeroLocation();
   }
 
   // --------------------------------------------------------------------------------
@@ -108,7 +112,9 @@ export class Lexer {
   // The buffer for accumulating literal values (true, false, null, or numbers).
   #literalBuffer = null;
   // The current location in the input stream
-  #location = {index: 0, line: 1, column: 0};
+  #location = zeroLocation();
+  // The length of the last line.
+  #lastLineLength = 0;
   // The location of the first token added in  literalBuffer.
   #literalBufferStartLocation = null;
   // True if the last character was a \r.
@@ -119,6 +125,18 @@ export class Lexer {
     throw new SyntaxError(message, location, location);
   }
 
+  #getLocationMinusColumns(numberOfColumns) {
+    if (numberOfColumns <=  this.#location.column) {
+      return {... this.#location, column: this.#location.column - numberOfColumns};
+    } else {
+      return {
+        index: this.#location.index - numberOfColumns,
+        line: this.#location.line - 1,
+        column: this.#location.column + this.#lastLineLength - numberOfColumns
+      };
+    }
+  }
+  
   // Convert the literal value that just got lexed into an actual JavaScript value.
   #getLiteralBufferValue() {
     switch (this.#literalBuffer) {
@@ -128,7 +146,7 @@ export class Lexer {
       default:
         const number = Number(this.#literalBuffer);
         if (Number.isFinite(number)) return number;
-        this.throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#literalBufferStartLocation);
+        this.throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#getLocationMinusColumns(this.#literalBuffer.length));
     }
   }
 
@@ -161,20 +179,22 @@ export class Lexer {
     }
   }
 
+  #updateLocationForNewLine() {
+    this.#lastLineLength = this.#location.column;
+    ++this.#location.line;
+    this.#location.column = 0;
+  }
+
   #updateLocation(char) {
     ++this.#location.index;
     ++this.#location.column;
     switch (char) {
       case '\r':
-        ++this.#location.line;
-        this.#location.column = 0;
+        this.#updateLocationForNewLine();
         this.#lastCharIsCR = true;
         break;
       case '\n':
-        if (!this.#lastCharIsCR) {
-          ++this.#location.line;
-          this.#location.column = 0;
-        }
+        if (!this.#lastCharIsCR) this.#updateLocationForNewLine();
       default:
         this.#lastCharIsCR = false;
     }
