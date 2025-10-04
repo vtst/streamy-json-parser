@@ -96,7 +96,7 @@ export class Parser {
   #stack;
 
   #getToken() { return this.#lexer.tokens[this.#index]; }
-  #throwSyntaxError(message) { throw new SyntaxError(this.#getToken()?.location || this.#lexer.location, message); }
+  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#getToken()?.location); }
   #throwUnexpectedTokenError() { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(this.#getToken())}"`); }
 
   #expectObjectPropertyName(context) {

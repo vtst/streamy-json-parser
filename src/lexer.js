@@ -77,15 +77,16 @@ export class Lexer {
   #isClosed = false;  // Whether the lexer has finished lexing the input string.
   #options;
 
-  // Options:
-  // * ignore_locations (bool): if true, locations are not tracked.
   constructor(opt_options) {
     this.#options = opt_options || {};
   }
 
+  #currentChunkLocation;
+
   // Append some text to lex to the input string.
   push(text) {
     if (this.#isClosed) throw 'Cannot push more text to a closed lexer.';
+    this.#currentChunkLocation = this.#location;
     for (let i = 0; i < text.length; ++i) {
       this.#lexChar(text[i]);
     }
@@ -98,11 +99,12 @@ export class Lexer {
   close() {
     this.#isClosed = true;
     this.#flushState();
-    if (this.#stringBuffer) this.#throwSyntaxError('Unterminated string');
+    if (this.#stringBuffer) this.throwSyntaxError('Unterminated string');
   }
 
   reset() {
     this.tokens = [];
+    this.#location = 0;
     this.#isClosed = false;
   }
 
@@ -117,13 +119,14 @@ export class Lexer {
   #literalBuffer = null;
   // Tracks if the last character processed was a carriage return (\r).
   #lastCharIsCR = false;
-  // The current location in the input stream (index, line and column).
-  location = {index: 0, line: 1, column: 0};
+  // The current location in the input stream
+  #location = 0;
   // The location of the first token added in  literalBuffer.
   #literalBufferStartLocation = null;
 
-  #throwSyntaxError(message, opt_location) {
-    throw new SyntaxError(opt_location || this.location, message);
+  throwSyntaxError(message, opt_location) {
+    let location = opt_location === undefined ? this.#location : opt_location;
+    throw new SyntaxError(message, location, location - this.#currentChunkLocation);
   }
 
   // Convert the literal value that just got lexed into an actual JavaScript value.
@@ -135,14 +138,14 @@ export class Lexer {
       default:
         const number = Number(this.#literalBuffer);
         if (Number.isFinite(number)) return number;
-        this.#throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#literalBufferStartLocation);
+        this.throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#literalBufferStartLocation);
     }
   }
 
   #pushToken(type, opt_value, opt_location) {
     this.tokens.push({
       type,
-      location: this.#options.ignore_locations ? undefined : (opt_location || {... this.location}),
+      location: opt_location === undefined ? this.#location : opt_location,
       value: opt_value
     });
   }
@@ -172,29 +175,9 @@ export class Lexer {
     }
   }
 
-  #updateLocation(char) {
-    if (this.#options.ignore_locations) return;
-    ++this.location.index;
-    ++this.location.column;
-    switch (char) {
-      case '\r':
-        ++this.location.line;
-        this.location.column = 0;
-        this.#lastCharIsCR = true;
-        break;
-      case '\n':
-        if (!this.#lastCharIsCR) {
-          ++this.location.line;
-          this.location.column = 0;
-        }
-      default:
-        this.#lastCharIsCR = false;
-    }
-  }
-
   // Process a single character of input.
   #lexChar(char) {
-    this.#updateLocation(char);
+    ++this.#location;
     if (this.#stringBuffer === null) {
       // Outside of a string.
       switch (char) {
@@ -220,7 +203,7 @@ export class Lexer {
         default:
           if (this.#literalBuffer === null) {
             this.#literalBuffer = char;
-            if (!this.#options.ignore_locations) this.#literalBufferStartLocation = {... this.location};
+            this.#literalBufferStartLocation = this.#location;
           } else {
             this.#literalBuffer += char;
           }
@@ -248,12 +231,12 @@ export class Lexer {
     } else {
       // In a string, in an escape sequence.
       if (char == '"' && this.#escapeSequenceBuffer) {
-        this.#throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer.join(''));
+        this.throwSyntaxError('Incomplete escape sequence: \\' + this.#escapeSequenceBuffer.join(''));
       }
       this.#escapeSequenceBuffer.push(char);
       const value = getCharFromEscapeSequence(this.#escapeSequenceBuffer.join(''));
       if (value == ESCAPE_SEQUENCE_ERROR) {
-        this.#throwSyntaxError('Illegal escape sequence: \\' + this.#escapeSequenceBuffer);
+        this.throwSyntaxError('Illegal escape sequence: \\' + this.#escapeSequenceBuffer);
       } else if (value) {
         this.#stringBuffer.push(value);
         this.#escapeSequenceBuffer = null;
