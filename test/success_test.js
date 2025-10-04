@@ -76,7 +76,8 @@ const EXAMPLE_2 = {
   "details": {
     "version": "1.0",
     "timestamp": "2025-10-01T12:00:00Z"
-  }
+  },
+  "escape_sequences": "Hello \n \t \r \b \f \u0041"
 };
 
 {

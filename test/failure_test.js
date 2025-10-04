@@ -79,3 +79,15 @@ const FAILING_EXAMPLE_5 = `{
     "FAILING_EXAMPLE_5"
   );
 }
+
+const FAILING_EXAMPLE_6 = `{
+  "illegal_escape_sequence": "\\uzzzz"
+}`;
+
+{
+  assert.throws(
+    () => parse(FAILING_EXAMPLE_6),
+    checkSyntaxError('Line 2, column 36: Illegal escape sequence: \\uzzzz'),
+    "FAILING_EXAMPLE_6"
+  );
+}
