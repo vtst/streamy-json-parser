@@ -108,8 +108,8 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
   * Function to report error locations in a human readable manner
   * Delete values during parsing to free memory for large input
   * Add objects to events
+* Bug
+  * Correctly report location of literals
+  * Move Include incomplete string
 * Optimization
   * Simplify parser stack
-  * Simplify lexer state
-  * Move Include incomplete string
-  * Simplify location for literal (could we freeze it?)
