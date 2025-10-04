@@ -64,9 +64,11 @@ function getCharFromEscapeSequence(escapeSequence) {
   }
 }
 
-function zeroLocation() {
-  return {index: 0, line: 1, column: 0};
-}
+const STATE = {
+  MAIN: 1,
+  STRING: 2,
+  ESCAPE_SEQUENCE: 3
+};
 
 // A lexer for JSON strings. The input is given by calling push() (potentially multiple times)
 // and close() (once). Lexing happens incrementally, and tokens are pushed in .tokens as they are lexed.
@@ -76,6 +78,10 @@ export class Lexer {
 
   // --------------------------------------------------------------------------------
   // The interface for the lexer.
+
+  constructor() {
+    this.reset();
+  }
 
   // These fields are used as output for the lex, flush and close functions.
   numberOfTokens = 0;
@@ -99,24 +105,29 @@ export class Lexer {
   }
 
   reset() {
-    this.#location = zeroLocation();
+    this.#stringBuffer = null;
+    this.#literalBuffer = null;
+    this.#escapeSequenceBuffer = null;
+    this.#location = {index: 0, line: 1, column: 0};
+    this.#lastLineLength = 0;
+    this.#lastCharIsCR = false;
   }
 
   // --------------------------------------------------------------------------------
   // The implementation of the lexer.
 
   // The buffer for accumulating string content while parsing a JSON string.
-  #stringBuffer = null;
+  #stringBuffer;
   // The buffer for accumulating characters in an escape sequence within a string.
-  #escapeSequenceBuffer = null;
+  #escapeSequenceBuffer;
   // The buffer for accumulating literal values (true, false, null, or numbers).
-  #literalBuffer = null;
+  #literalBuffer;
   // The current location in the input stream
-  #location = zeroLocation();
+  #location;
   // The length of the last line.
-  #lastLineLength = 0;
+  #lastLineLength;
   // True if the last character was a \r.
-  #lastCharIsCR = false;
+  #lastCharIsCR;
 
   throwSyntaxError(message, opt_location) {
     let location = opt_location === undefined ? this.#location : opt_location;
