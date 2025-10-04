@@ -109,5 +109,7 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
   * Delete values during parsing to free memory for large input
   * Add objects to events
 * Optimization
-  * Better handling of location
-  * Tokens as single integers
+  * Restore full location
+  * Simplify parser stack
+  * Simplify lexer state
+  * Move Include incomplete string
