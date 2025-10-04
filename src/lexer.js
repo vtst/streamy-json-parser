@@ -29,8 +29,8 @@ const TOKEN_TYPE_NAME = {
   [TOKEN_TYPE.END_STRING]: '"'
 };
 
-export function getTokenTypeName(token) {
-  return TOKEN_TYPE_NAME[token.type];
+export function getTokenTypeName(tokenType) {
+  return TOKEN_TYPE_NAME[tokenType];
 }
 
 // Mapping escape sequences to the actual character they represent.
@@ -143,11 +143,12 @@ export class Lexer {
   }
 
   #pushToken(type, opt_value, opt_location) {
-    this.tokens.push({
-      type,
-      location: opt_location === undefined ? this.#location : opt_location,
-      value: opt_value
-    });
+    let location = opt_location === undefined ? this.#location : opt_location;
+    if (opt_value === undefined) {
+      this.tokens.push(type, location);
+    } else {
+      this.tokens.push(type, location, opt_value);
+    }
   }
 
   // Push a token for what is currently stored in the state, and reset the state.

@@ -95,9 +95,11 @@ export class Parser {
   // * {type: STRING, value: "..."} 
   #stack;
 
-  #getToken() { return this.#lexer.tokens[this.#index]; }
-  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#getToken()?.location); }
-  #throwUnexpectedTokenError() { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(this.#getToken())}"`); }
+  #getTokenType() { return this.#lexer.tokens[this.#index]; }
+  #getTokenLocation() { return this.#lexer.tokens[this.#index + 1]; }
+  #getTokenValue() { return this.#lexer.tokens[this.#index + 2]; }
+  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message, this.#getTokenLocation()); }
+  #throwUnexpectedTokenError() { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(this.#getTokenType())}"`); }
 
   #expectObjectPropertyName(context) {
     return context.type === CONTEXT_TYPE.OBJECT && context.expectedPiece === PIECE.PROPERTY_NAME;
@@ -168,12 +170,12 @@ export class Parser {
   }
 
   #parse() {
-    for (; this.#index < this.#lexer.tokens.length; ++this.#index) {
-      const token = this.#lexer.tokens[this.#index];
+    for (; this.#index < this.#lexer.tokens.length; this.#index += 2) {
       const context = this.#stack.at(-1);
-      switch (typeof token === 'object' ? token.type : token) {
+      switch (this.#getTokenType()) {
         case TOKEN_TYPE.LITERAL:
-          this.#setValue(token.value);
+          this.#setValue(this.#getTokenValue());
+          ++this.#index;
           break;
         case TOKEN_TYPE.START_OBJECT:
           let newObject = this.#getValue(context) || {};
@@ -223,7 +225,8 @@ export class Parser {
           break;
         case TOKEN_TYPE.STRING_CHUNK:
           CHECK(context.type === CONTEXT_TYPE.STRING);
-          context.value += token.value;
+          context.value += this.#getTokenValue();
+          ++this.#index;
           break;
         case TOKEN_TYPE.END_STRING:
           CHECK(context.type === CONTEXT_TYPE.STRING);
