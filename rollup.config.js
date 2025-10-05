@@ -4,6 +4,19 @@ import pkg from './package.json';
 
 const globalName = 'StreamyJsonParser';
 
+const terserOptions = {
+  compress: {
+      passes: 3, 
+      drop_console: true, 
+      inline: 3, 
+      dead_code: true
+  },
+  mangle: {
+      toplevel: true, 
+      reserved: [] 
+  }
+};
+
 const config = {
   input: 'src/index.js',
   
@@ -39,7 +52,7 @@ const config = {
       format: 'umd',
       name: globalName,
       sourcemap: true, // Generates a source map for debugging
-      plugins: [terser()], // Applies Terser minification only to this bundle
+      plugins: [terser(terserOptions)], // Applies Terser minification only to this bundle
     },
   ],
 };
