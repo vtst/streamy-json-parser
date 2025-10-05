@@ -9,7 +9,8 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.js"
     }
-  },  "scripts": {
+  },
+  "scripts": {
     "test": "node test/success_test.js && node test/failure_test.js",
     "testperf": "node test/perf_test.js",
     "build": "rollup -c",
@@ -35,6 +36,7 @@
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
     "@rollup/plugin-babel": "^6.0.4",
+    "benchmark": "^2.1.4",
     "rollup": "^2.79.2",
     "rollup-plugin-terser": "^7.0.2",
     "seedrandom": "^3.0.5"

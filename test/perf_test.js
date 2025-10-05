@@ -3,6 +3,7 @@
 
 import assert from 'assert';
 import { Parser } from '../src/parser.js';
+import benchmark from 'benchmark';
 import seedrandom from 'seedrandom';
 
 const random = seedrandom('streamy-json-parser'); 
@@ -93,8 +94,25 @@ function parseInChunks(str, chunkSize, opt_placeholder) {
   console.log('Stringifying the JSON object');
   let str = JSON.stringify(obj);
   console.log(str.length + ' characters');
-  let {result: o0, time: t0} = time(1, JSON.parse, str);
-  let {result: o1, time: t1} = time(1, parseInChunks, str, 0);
-  console.log(`JSON.parse: ${t0}ms, parse: ${t1}ms, ratio: ${Math.round(10 * t1/t0) / 10}`);
-  assert.deepStrictEqual(o0, o1);
+
+  const suite = new benchmark.Suite;
+  suite.add('JSON.parse', function() {
+    JSON.parse(str);
+  });
+  suite.add('parseInChunks', function() {
+    parseInChunks(str, 0);
+  });
+  suite.on('cycle', function(event) {
+    let bench = event.target;
+    console.log(`${bench.name}: ${(bench.stats.mean * 1000).toFixed(2)} ms/op (${bench.hz.toFixed(2)} ops/sec, ${bench.stats.sample.length} runs)`);
+  });
+  suite.on('complete', function() {
+    const jsonParseBench = this.filter(bench => bench.name === 'JSON.parse')[0];
+    const parseInChunksBench = this.filter(bench => bench.name === 'parseInChunks')[0];
+    if (jsonParseBench && parseInChunksBench) {
+      const ratio = parseInChunksBench.stats.mean / jsonParseBench.stats.mean;
+      console.log(`parseInChunks is ${(ratio).toFixed(2)}x slower than JSON.parse`);
+    }
+  });
+  suite.run();
 }
