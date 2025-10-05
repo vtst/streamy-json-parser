@@ -122,5 +122,4 @@ In some cases, altering values can be useful for memory management, such as disc
 * Bug
   * Correctly report location of literals
 * Optimization
-  * Simplify parser stack
   * Try switch on integers instead of chars

@@ -7,19 +7,6 @@ function CHECK(condition) {
   if (!condition) throw new Error('Assertion failed');
 }
 
-const CONTEXT_TYPE = {
-  OBJECT: 1,
-  ARRAY: 2,
-  STRING : 3
-};
-
-const CONTEXT_TYPE_NAME = [
-  null,  // index 0 is unused
-  'object',  // 1: CONTEXT_TYPE.OBJECT
-  'array',  // 2: CONTEXT_TYPE.ARRAY
-  'string'  // 3: CONTEXT_TYPE.STRING
-];
-
 const PIECE = {
   PROPERTY_NAME: 1,
   COLON: 2,
@@ -71,7 +58,8 @@ export class Parser {
     this.#lexer.reset();
     this.#events = [];
     this.#hasPlaceholder = false;
-    this.#stack = [{type: CONTEXT_TYPE.ARRAY, value: [], key: 0, expectedPiece: PIECE.VALUE, isEmpty: true}];
+    this.#stack = [{isArray: true, value: [], key: 0, expectedPiece: PIECE.VALUE, isEmpty: true}];
+    this.#stringBuffer = null;
   }
 
   // Set a placeholder for the root value. Must be called before parsing starts.
@@ -97,26 +85,18 @@ export class Parser {
 
   // A stack of contexts designating the current node of the root value being set.
   // Possible stack values:
-  // * {type: CONTEXT_TYPE.ARRAY, value: [...], key: <number>, expectedPiece: <PIECE>, isEmpty: <boolean> }
+  // * {isArray: true, value: [...], key: <number>, expectedPiece: <PIECE>, isEmpty: <boolean> }
   //   key is the index of the value array to be set. if key == value.length, a value is expected,
   //   if key < value.length, a coma is expected.
-  // * {type: CONTEXT_TYPE.OBJECT, value: {...}, key: <string>, expectedPiece: <PIECE>, isEmpty: <boolean>, propertyNames: <Set<string>>}
-  // * {type: STRING, value: "..."} 
+  // * {isArray: false, value: {...}, key: <string>, expectedPiece: <PIECE>, isEmpty: <boolean>, propertyNames: <Set<string>>}
   #stack;
+  #stringBuffer;
 
   #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message); }
   #throwUnexpectedTokenError(tokenType) { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(tokenType)}"`); }
 
-  #expectObjectPropertyName(context) {
-    return context.type === CONTEXT_TYPE.OBJECT && context.expectedPiece === PIECE.PROPERTY_NAME;
-  }
-
-  #canSetValue(context) {
-    return context.type !== CONTEXT_TYPE.STRING && context.expectedPiece === PIECE.VALUE;
-  }
-
   #setIncompleteValue(context, value) {
-    if (!this.#canSetValue(context)) this.#throwSyntaxError(`Unexpected value`);
+    if (context.expectedPiece !== PIECE.VALUE) this.#throwSyntaxError(`Unexpected value`);
     context.value[context.key] = value;
     context.isEmpty = false;
   }
@@ -138,20 +118,16 @@ export class Parser {
   }
 
   #getValue(context) {
-    CHECK(context.type !== CONTEXT_TYPE.STRING);
     return context.value[context.key];
   }
 
   #nextArrayItemOrObjectProperty(context) {
-    switch (context.type) {
-      case CONTEXT_TYPE.ARRAY:
-        ++context.key;
-        context.expectedPiece = PIECE.VALUE;
-        break;
-      case CONTEXT_TYPE.OBJECT:
-        if (this.#hasPlaceholder) context.propertyNames.add(context.key);
-        context.expectedPiece = PIECE.PROPERTY_NAME;
-        break;
+    if (context.isArray) {
+      ++context.key;
+      context.expectedPiece = PIECE.VALUE;
+    } else {
+      if (this.#hasPlaceholder) context.propertyNames.add(context.key);
+      context.expectedPiece = PIECE.PROPERTY_NAME;
     }
   }
 
@@ -159,15 +135,12 @@ export class Parser {
     if (!context.isEmpty) this.#nextArrayItemOrObjectProperty(context);
     if (this.#hasPlaceholder) {
       // Remove items/properties that were in the placeholder but not in the parsed value.
-      switch (context.type) {
-        case CONTEXT_TYPE.ARRAY:
-          context.value.length = context.key;
-          break;
-        case CONTEXT_TYPE.OBJECT:
-          for (const propertyName in context.value) {
-            if (!context.propertyNames.has(propertyName)) delete context.value[propertyName];
-          }
-          break;
+      if (context.isArray) {
+        context.value.length = context.key;
+      } else {
+        for (const propertyName in context.value) {
+          if (!context.propertyNames.has(propertyName)) delete context.value[propertyName];
+        }
       }
     }
     this.#stack.pop();
@@ -179,82 +152,80 @@ export class Parser {
     for (let index = 0; index < this.#lexer.numberOfTokens; ++index) {
       const context = this.#stack.at(-1);
       const tokenType = this.#lexer.tokenTypes[index];
-      switch (tokenType) {
-        case TOKEN_TYPE.LITERAL:
-          this.#setValue(this.#lexer.tokenValues[index]);
-          break;
-        case TOKEN_TYPE.START_OBJECT:
-          let newObject = this.#getValue(context) || {};
-          this.#setValue(newObject);
-          this.#stack.push(
-            {type: CONTEXT_TYPE.OBJECT, value: newObject, expectedPiece: PIECE.PROPERTY_NAME, propertyNames: this.#hasPlaceholder ? new Set() : undefined, isEmpty: true});
-          break;
-        case TOKEN_TYPE.END_OBJECT:
-          if (context.type !== CONTEXT_TYPE.OBJECT || context.expectedPiece !== (context.isEmpty ? PIECE.PROPERTY_NAME : PIECE.COMA)) {
-            this.#throwUnexpectedTokenError(tokenType);
-          }
-          this.#closeArrayOrObject(context);
-          break;
-        case TOKEN_TYPE.START_ARRAY:
-          let newArray = this.#getValue(context) || [];
-          this.#setValue(newArray);
-          this.#stack.push({type: CONTEXT_TYPE.ARRAY, value: newArray, key: 0, expectedPiece: PIECE.VALUE, isEmpty: true});
-          break;
-        case TOKEN_TYPE.END_ARRAY:
-          if (context.type !== CONTEXT_TYPE.ARRAY || (!context.isEmpty && context.expectedPiece === PIECE.VALUE)) {
-            this.#throwUnexpectedTokenError(tokenType);
-          }
-          this.#closeArrayOrObject(context);
-          break;
-        case TOKEN_TYPE.COLON:
-          switch (context.type) {
-            case CONTEXT_TYPE.ARRAY: this.#throwUnexpectedTokenError(tokenType);
-            case CONTEXT_TYPE.OBJECT:
-              if (context.type !== CONTEXT_TYPE.OBJECT || context.expectedPiece !== PIECE.COLON) {
+      if (this.#stringBuffer === null) {
+        switch (tokenType) {
+          case TOKEN_TYPE.LITERAL:
+            this.#setValue(this.#lexer.tokenValues[index]);
+            break;
+          case TOKEN_TYPE.START_OBJECT:
+            let newObject = this.#getValue(context) || {};
+            this.#setValue(newObject);
+            this.#stack.push(
+              {isArray: false, value: newObject, expectedPiece: PIECE.PROPERTY_NAME, propertyNames: this.#hasPlaceholder ? new Set() : undefined, isEmpty: true});
+            break;
+          case TOKEN_TYPE.END_OBJECT:
+            if (context.isArray || context.expectedPiece !== (context.isEmpty ? PIECE.PROPERTY_NAME : PIECE.COMA)) {
+              this.#throwUnexpectedTokenError(tokenType);
+            }
+            this.#closeArrayOrObject(context);
+            break;
+          case TOKEN_TYPE.START_ARRAY:
+            let newArray = this.#getValue(context) || [];
+            this.#setValue(newArray);
+            this.#stack.push({isArray: true, value: newArray, key: 0, expectedPiece: PIECE.VALUE, isEmpty: true});
+            break;
+          case TOKEN_TYPE.END_ARRAY:
+            if (!context.isArray || (!context.isEmpty && context.expectedPiece === PIECE.VALUE)) {
+              this.#throwUnexpectedTokenError(tokenType);
+            }
+            this.#closeArrayOrObject(context);
+            break;
+          case TOKEN_TYPE.COLON:
+            if (context.isArray) {
+              this.#throwUnexpectedTokenError(tokenType);
+            } else {
+              if (context.expectedPiece !== PIECE.COLON) {
                 this.#throwUnexpectedTokenError(tokenType);
               }
               context.expectedPiece = PIECE.VALUE;
-              break;
-            case CONTEXT_TYPE.STRING: CHECK(false);
-          }
-          break;
-        case TOKEN_TYPE.COMA:
-          CHECK(context.type !== CONTEXT_TYPE.STRING);
-          if (context.expectedPiece !== PIECE.COMA) this.#throwUnexpectedTokenError(tokenType);
-          this.#nextArrayItemOrObjectProperty(context);
-          break;
-        case TOKEN_TYPE.START_STRING:
-          if (!(this.#canSetValue(context) || this.#expectObjectPropertyName(context))) {
-            this.#throwUnexpectedTokenError(tokenType);
-          }
-          this.#stack.push({type: CONTEXT_TYPE.STRING, value: ''});
-          break;
-        case TOKEN_TYPE.STRING_CHUNK:
-          CHECK(context.type === CONTEXT_TYPE.STRING);
-          context.value += this.#lexer.tokenValues[index];
-          break;
-        case TOKEN_TYPE.END_STRING:
-          CHECK(context.type === CONTEXT_TYPE.STRING);
-          context.value += this.#lexer.tokenValues[index];
-          this.#stack.pop();
-          const newContext = this.#stack.at(-1);
-          if (this.#expectObjectPropertyName(newContext)) {
-            newContext.expectedPiece = PIECE.COLON;
-            newContext.key = context.value;
+            }
+            break;
+          case TOKEN_TYPE.COMA:
+            if (context.expectedPiece !== PIECE.COMA) this.#throwUnexpectedTokenError(tokenType);
+            this.#nextArrayItemOrObjectProperty(context);
+            break;
+          case TOKEN_TYPE.START_STRING:
+            if (!(context.expectedPiece === PIECE.VALUE || context.expectedPiece === PIECE.PROPERTY_NAME)) {
+              this.#throwUnexpectedTokenError(tokenType);
+            }
+            this.#stringBuffer = [];
+            break;
+          // By construction, the lexer cannot emit STRING_CHUNK or END_STRING here.
+        }
+      } else {
+        this.#stringBuffer.push(this.#lexer.tokenValues[index]);
+        if (tokenType === TOKEN_TYPE.END_STRING) {
+          let value = this.#stringBuffer.join('');
+          if (context.expectedPiece === PIECE.PROPERTY_NAME) {
+            context.expectedPiece = PIECE.COLON;
+            context.key = value;
           } else {
-            this.#setValue(context.value);
+            this.#setValue(value);
           }
-          break;      
+          this.#stringBuffer = null;
+        }
       }
     }
   }
 
   // Include the incomplete string in the root value. To be called after parsing a chunk of the input string.
   #includeIncompleteString() {
-    if (this.#options.include_incomplete_strings && this.#stack.length > 1) {
-      const context1 = this.#stack.at(-1), context2 = this.#stack.at(-2);
-      if (context1.type == CONTEXT_TYPE.STRING && !this.#expectObjectPropertyName(context2)) {
-        this.#setIncompleteValue(context2, context1.value + (typeof this.#options.include_incomplete_strings === 'string' ? this.#options.include_incomplete_strings : ''));
+    if (this.#options.include_incomplete_strings && this.#stringBuffer !== null) {
+      const context = this.#stack.at(-1);
+      if (context.expectedPiece === PIECE.VALUE) {
+        let value = this.#stringBuffer.join('');
+        this.#stringBuffer = [value];
+        this.#setIncompleteValue(context, value + (typeof this.#options.include_incomplete_strings === 'string' ? this.#options.include_incomplete_strings : ''));
       }
     }
   }
