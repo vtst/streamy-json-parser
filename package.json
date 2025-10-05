@@ -1,6 +1,6 @@
 {
   "name": "streamy-json-parser",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A JSON parser that receives its input as a stream of strings",
   "type": "module",
   "exports": {
