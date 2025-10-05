@@ -1,6 +1,6 @@
 {
   "name": "streamy-json-parser",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A JSON parser that receives its input as a stream of strings",
   "type": "module",
   "exports": {
@@ -10,6 +10,10 @@
       "require": "./dist/index.js"
     }
   },
+  "files" : [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "test": "node test/success_test.js && node test/failure_test.js",
     "testperf": "node test/perf_test.js",
