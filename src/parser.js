@@ -13,11 +13,12 @@ const CONTEXT_TYPE = {
   STRING : 3
 };
 
-const CONTEXT_TYPE_NAME = {
-  [CONTEXT_TYPE.OBJECT]: 'object',
-  [CONTEXT_TYPE.ARRAY]: 'array',
-  [CONTEXT_TYPE.STRING]: 'string'
-};
+const CONTEXT_TYPE_NAME = [
+  null,  // index 0 is unused
+  'object',  // 1: CONTEXT_TYPE.OBJECT
+  'array',  // 2: CONTEXT_TYPE.ARRAY
+  'string'  // 3: CONTEXT_TYPE.STRING
+];
 
 const PIECE = {
   PROPERTY_NAME: 1,

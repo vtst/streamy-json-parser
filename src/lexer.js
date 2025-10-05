@@ -16,18 +16,19 @@ export const TOKEN_TYPE = {
   'END_STRING': 10
 };
 
-const TOKEN_TYPE_NAME = {
-  [TOKEN_TYPE.LITERAL]: 'literal value',
-  [TOKEN_TYPE.START_OBJECT]: '{',
-  [TOKEN_TYPE.END_OBJECT]: '}',
-  [TOKEN_TYPE.START_ARRAY]: '[',
-  [TOKEN_TYPE.END_ARRAY]: ']',
-  [TOKEN_TYPE.COLON]: ':',
-  [TOKEN_TYPE.COMA]: ',',
-  [TOKEN_TYPE.START_STRING]: '"',
-  [TOKEN_TYPE.STRING_CHUNK]: 'string chunk',
-  [TOKEN_TYPE.END_STRING]: '"'
-};
+const TOKEN_TYPE_NAME = [
+  null,  // index 0 is unused
+  'literal value',  // 1: LITERAL
+  '{',  // 2: START_OBJECT
+  '}',  // 3: END_OBJECT
+  '[',  // 4: START_ARRAY
+  ']',  // 5: END_ARRAY
+  ':',  // 6: COLON
+  ',',  // 7: COMA
+  '"',  // 8: START_STRING
+  'string chunk',  // 9: STRING_CHUNK
+  '"'  // 10: END_STRING
+];
 
 export function getTokenTypeName(tokenType) {
   return TOKEN_TYPE_NAME[tokenType];
