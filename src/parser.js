@@ -143,7 +143,7 @@ export class Parser {
         context.expectedPiece = PIECE.VALUE;
         break;
       case CONTEXT_TYPE.OBJECT:
-        context.propertyNames.add(context.key);
+        if (this.#hasPlaceholder) context.propertyNames.add(context.key);
         context.expectedPiece = PIECE.PROPERTY_NAME;
         break;
     }
@@ -180,7 +180,7 @@ export class Parser {
           let newObject = this.#getValue(context) || {};
           this.#setValue(newObject);
           this.#stack.push(
-            {type: CONTEXT_TYPE.OBJECT, value: newObject, expectedPiece: PIECE.PROPERTY_NAME, propertyNames: new Set(), isEmpty: true});
+            {type: CONTEXT_TYPE.OBJECT, value: newObject, expectedPiece: PIECE.PROPERTY_NAME, propertyNames: this.#hasPlaceholder ? new Set() : undefined, isEmpty: true});
           break;
         case TOKEN_TYPE.END_OBJECT:
           if (context.type !== CONTEXT_TYPE.OBJECT || context.expectedPiece !== (context.isEmpty ? PIECE.PROPERTY_NAME : PIECE.COMA)) {

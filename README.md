@@ -112,3 +112,4 @@ For instance, if `.path` is `["foo", 2, "bar"]`, the events refer to the node `.
   * Correctly report location of literals
 * Optimization
   * Simplify parser stack
+  * Try switch on integers instead of chars
