@@ -120,5 +120,3 @@ In some cases, altering values can be useful for memory management, such as disc
   * Function to report error locations in a human readable manner
 * Bug
   * Correctly report location of literals
-* Optimization
-  * Try switch on integers instead of chars
