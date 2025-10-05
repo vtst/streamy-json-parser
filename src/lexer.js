@@ -53,6 +53,12 @@ const MODE = {
   UNICODE_ESCAPE_SEQUENCE: 4
 };
 
+function copyLocationTo(location1, location2) {
+  location2.index = location1.index;
+  location2.line = location1.line;
+  location2.column = location1.column;
+}
+
 // A lexer for JSON strings. The input is given by calling push() (potentially multiple times)
 // and close() (once). Lexing happens incrementally, and tokens are pushed in .tokens as they are lexed.
 // Tokens are of the following type: {type: TOKEN_TYPE, value: string?}
@@ -95,7 +101,6 @@ export class Lexer {
     this.#literalBuffer = null;
     this.#unicodeBuffer = '';
     this.#location = {index: 0, line: 1, column: 0};
-    this.#lastLineLength = 0;
     this.#lastCharIsCR = false;
   }
 
@@ -112,27 +117,28 @@ export class Lexer {
   #literalBuffer;
   // The current location in the input stream
   #location;
-  // The length of the last line.
-  #lastLineLength;
+  // The start location of the last literal value that was lexed.
+  #lastLiteralStartLocation = {index: 0, line: 1, column: 0};
   // True if the last character was a \r.
   #lastCharIsCR;
 
-  throwSyntaxError(message, opt_location) {
-    let location = opt_location === undefined ? this.#location : opt_location;
-    throw new SyntaxError(message, location, location);
+  throwSyntaxError(message, opt_arg) {
+    let location;
+    switch (typeof opt_arg) {
+      case 'object':
+        location = opt_arg;
+        break;
+      case 'number':
+        // opt_arg is the index of the token in the lexer buffer.
+        location = this.tokenTypes[opt_arg] === TOKEN_TYPE.LITERAL ? this.#lastLiteralStartLocation : this.#location;
+        break;
+      case 'undefined':
+        location = this.#location;
+        break;
+    }
+    throw new SyntaxError(message, location);
   }
 
-  #getLocationMinusColumns(numberOfColumns) {
-    if (numberOfColumns <=  this.#location.column) {
-      return {... this.#location, column: this.#location.column - numberOfColumns};
-    } else {
-      return {
-        index: this.#location.index - numberOfColumns,
-        line: this.#location.line - 1,
-        column: this.#location.column + this.#lastLineLength - numberOfColumns
-      };
-    }
-  }
   
   // Convert the literal value that just got lexed into an actual JavaScript value.
   #getLiteralBufferValue() {
@@ -143,7 +149,7 @@ export class Lexer {
       default:
         const number = Number(this.#literalBuffer);
         if (Number.isFinite(number)) return number;
-        this.throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#getLocationMinusColumns(this.#literalBuffer.length));
+        this.throwSyntaxError('Unknown literal value: ' + this.#literalBuffer, this.#lastLiteralStartLocation);
     }
   }
 
@@ -170,7 +176,6 @@ export class Lexer {
   }
 
   #updateLocationForNewLine() {
-    this.#lastLineLength = this.#location.column;
     ++this.#location.line;
     this.#location.column = 0;
   }
@@ -218,6 +223,7 @@ export class Lexer {
           break;
         default:
           if (this.#literalBuffer === null) {
+            copyLocationTo(this.#location, this.#lastLiteralStartLocation);
             this.#literalBuffer = char;
           } else {
             this.#literalBuffer += char;

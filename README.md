@@ -113,10 +113,3 @@ If you need to modify the parsed data while parsing, consider the following appr
 * Use the event tracking feature (`track_events` option) to listen for `set` or `end` events, and only modify values after those events have been emitted for the relevant path.
 
 In some cases, altering values can be useful for memory management, such as discarding sub-objects that are no longer needed. However, always ensure you do so safely, after the parser has finished processing those parts of the data.
-
-## TODOs
-
-* New features
-  * Function to report error locations in a human readable manner
-* Bug
-  * Correctly report location of literals

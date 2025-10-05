@@ -91,3 +91,15 @@ const FAILING_EXAMPLE_6 = `{
     "FAILING_EXAMPLE_6"
   );
 }
+
+const FAILING_EXAMPLE_7 = `{
+  "value" true
+}`;
+
+{
+  assert.throws(
+    () => parse(FAILING_EXAMPLE_7),
+    checkSyntaxError('Line 2, column 11: Unexpected value'),
+    "FAILING_EXAMPLE_7"
+  );
+}

@@ -92,11 +92,11 @@ export class Parser {
   #stack;
   #stringBuffer;
 
-  #throwSyntaxError(message) { this.#lexer.throwSyntaxError(message); }
+  #throwSyntaxError(message, tokenIndex) { this.#lexer.throwSyntaxError(message, tokenIndex); }
   #throwUnexpectedTokenError(tokenType) { this.#throwSyntaxError(`Unexpected token: "${getTokenTypeName(tokenType)}"`); }
 
-  #setIncompleteValue(context, value) {
-    if (context.expectedPiece !== PIECE.VALUE) this.#throwSyntaxError(`Unexpected value`);
+  #setIncompleteValue(context, value, tokenIndex) {
+    if (context.expectedPiece !== PIECE.VALUE) this.#throwSyntaxError(`Unexpected value`, tokenIndex);
     context.value[context.key] = value;
     context.isEmpty = false;
   }
@@ -110,9 +110,9 @@ export class Parser {
     }
   }
 
-  #setValue(value) {
+  #setValue(value, tokenIndex) {
     let context = this.#stack.at(-1);
-    this.#setIncompleteValue(context, value);
+    this.#setIncompleteValue(context, value, tokenIndex);
     context.expectedPiece = PIECE.COMA;
     this.#pushEvent(typeof value === 'object' ? 'begin' : 'set');
   }
@@ -149,13 +149,13 @@ export class Parser {
 
   // Process all tokens which are in the lexer buffer.
   #parse() {
-    for (let index = 0; index < this.#lexer.numberOfTokens; ++index) {
+    for (let tokenIndex = 0; tokenIndex < this.#lexer.numberOfTokens; ++tokenIndex) {
       const context = this.#stack.at(-1);
-      const tokenType = this.#lexer.tokenTypes[index];
+      const tokenType = this.#lexer.tokenTypes[tokenIndex];
       if (this.#stringBuffer === null) {
         switch (tokenType) {
           case TOKEN_TYPE.LITERAL:
-            this.#setValue(this.#lexer.tokenValues[index]);
+            this.#setValue(this.#lexer.tokenValues[tokenIndex], tokenIndex);
             break;
           case TOKEN_TYPE.START_OBJECT:
             let newObject = this.#getValue(context) || {};
@@ -203,7 +203,7 @@ export class Parser {
           // By construction, the lexer cannot emit STRING_CHUNK or END_STRING here.
         }
       } else {
-        this.#stringBuffer.push(this.#lexer.tokenValues[index]);
+        this.#stringBuffer.push(this.#lexer.tokenValues[tokenIndex]);
         if (tokenType === TOKEN_TYPE.END_STRING) {
           let value = this.#stringBuffer.join('');
           if (context.expectedPiece === PIECE.PROPERTY_NAME) {
