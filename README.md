@@ -118,7 +118,6 @@ In some cases, altering values can be useful for memory management, such as disc
 
 * New features
   * Function to report error locations in a human readable manner
-  * Add objects to events
 * Bug
   * Correctly report location of literals
 * Optimization
